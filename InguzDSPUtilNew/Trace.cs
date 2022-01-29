@@ -64,6 +64,7 @@ namespace DSPUtil
                 {
                     try
                     {
+                        //var rdr = new System.AppContext(;
                         System.Configuration.AppSettingsReader rdr = new System.Configuration.AppSettingsReader();
                         _tracefile = (string)rdr.GetValue("trace", typeof(string));
                     }

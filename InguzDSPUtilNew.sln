@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.32106.194
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InguzDSPUtilNew", "InguzDSPUtilNew\InguzDSPUtilNew.csproj", "{6972247C-A769-458A-B84C-D9B34546ED98}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6972247C-A769-458A-B84C-D9B34546ED98}.Debug|Any CPU.ActiveCfg = Release|Any CPU
+		{6972247C-A769-458A-B84C-D9B34546ED98}.Debug|Any CPU.Build.0 = Release|Any CPU
+		{6972247C-A769-458A-B84C-D9B34546ED98}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6972247C-A769-458A-B84C-D9B34546ED98}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {DDD59C8D-C5B8-47D0-A2C0-B3D940BAED60}
+	EndGlobalSection
+EndGlobal

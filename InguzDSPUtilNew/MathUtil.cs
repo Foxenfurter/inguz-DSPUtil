@@ -10,7 +10,7 @@ namespace DSPUtil
     public class DSPUtil
     {
         public const int BUFSIZE = 8192; // 512;
-        public static Version VERSION { get { return new Version("0.9.32"); } }
+        public static Version VERSION { get { return new Version("0.9.34"); } }
         public static DateTime EXPIRY { get { return DateTime.MaxValue; } }  // expire just about never
         public static String GetVersionInfo()
         {
