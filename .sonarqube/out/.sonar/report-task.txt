@@ -1,0 +1,6 @@
+projectKey=InguzDP-Util
+serverUrl=http://localhost:9000
+serverVersion=9.3.0.51899
+dashboardUrl=http://localhost:9000/dashboard?id=InguzDP-Util
+ceTaskId=AX9_OpvlDi9Ii5ypRi7S
+ceTaskUrl=http://localhost:9000/api/ce/task?id=AX9_OpvlDi9Ii5ypRi7S
