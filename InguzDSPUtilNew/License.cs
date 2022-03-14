@@ -1,17 +1,18 @@
 using System;
-using System.Collections.Generic;
+/*using System.Collections.Generic;
 using System.Text;
 using System.Xml;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Net;
 using System.IO;
-
+*/
 // Copyright (c) 2006, 2007
+//disabling licence key as this is not commercial software - Fox
 
 namespace DSPUtil
 {
-    public class License
+    static public class License
     {
         // The X.509 certificate of a software publisher
         private const string CERT =
@@ -45,7 +46,7 @@ namespace DSPUtil
         public static bool Verify(string data, string signature)
         {
             // Construct the cert
-            byte[] certdata = new System.Text.ASCIIEncoding().GetBytes(CERT);
+           /* byte[] certdata = new System.Text.ASCIIEncoding().GetBytes(CERT);
             byte[] rawdata = Encoding.UTF8.GetBytes(data);
 
             // Compute hash of the raw data.
@@ -63,8 +64,8 @@ namespace DSPUtil
             RSAPKCS1SignatureDeformatter RSADeformatter = new RSAPKCS1SignatureDeformatter();
             RSADeformatter.SetHashAlgorithm("SHA1");
             RSADeformatter.SetKey(cert.PublicKey.Key);
-            ok=RSADeformatter.VerifySignature(contenthash, sigdata);
-            return ok;
+            ok=RSADeformatter.VerifySignature(contenthash, sigdata);*/
+            return true;
         }
 
 
@@ -76,7 +77,7 @@ namespace DSPUtil
         /// <param name="guid">GUID</param>
         public static void Update(string mac, string guid)
         {
-            string url = String.Format(URL, guid, mac);
+           /* string url = String.Format(URL, guid, mac);
             string sig = String.Format(SIG, guid, mac);
             string val;
 
@@ -92,7 +93,7 @@ namespace DSPUtil
             if (!ok)
             {
                 throw new Exception("Signature could not be verified.");
-            }
+            }*/
         }
 
     }
