@@ -1,8 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
     <ApplicationIcon />
     <StartupObject />
@@ -16,9 +16,5 @@
     <Optimize>false</Optimize>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="6.0.0" />
-  </ItemGroup>
 
 </Project>

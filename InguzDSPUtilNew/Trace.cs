@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.IO;
+using System.Diagnostics;
 
 // Copyright (c) 2006, 2009 by Hugh Pyle, inguzaudio.com
 
@@ -65,8 +66,9 @@ namespace DSPUtil
                     try
                     {
                         //var rdr = new System.AppContext(;
-                        System.Configuration.AppSettingsReader rdr = new System.Configuration.AppSettingsReader();
-                        _tracefile = (string)rdr.GetValue("trace", typeof(string));
+                        //System.Configuration.AppSettingsReader rdr = new System.Configuration.AppSettingsReader();
+                        //_tracefile = (string)rdr.GetValue("trace", typeof(string));
+                        //need to replace this with an app reader ->_tracefile = Trace.FilePath
                     }
                     catch (Exception)
                     {
@@ -76,20 +78,20 @@ namespace DSPUtil
             }
             return (_init && _tracefile!=null);
         }
-
-        /// <summary>
-        /// Write a trace message.
-        /// </summary>
-        /// <param name="format"></param>
-        /// <param name="args"></param>
+        
+        // <summary>
+        // Write a trace message.
+        // </summary>
+        // <param name="format"></param>
+        // <param name="args"></param>
         public static void Write(string format, params object[] args)
         {
-            //          System.Diagnostics.Trace.WriteLine(String.Format(format, args));
+            //  System.Diagnostics.Trace.WriteLine(String.Format(format, args));
             if (_useTextWriter != null)
             {
                 _useTextWriter.WriteLine(format, args);
             }
-            else if (_useConsole)
+            else if(_useConsole)
             {
                 Console.Write(format, args);
             }
@@ -104,7 +106,9 @@ namespace DSPUtil
                     }
                     catch (Exception)
                     {
+                        Console.Write("Error Writing to " + _tracefile);
                     }
+
                 }
             }
         }
@@ -137,6 +141,7 @@ namespace DSPUtil
                 }
                 catch (Exception)
                 {
+                    Console.Write("Error Clearing " + _tracefile);
                 }
             }
         }
