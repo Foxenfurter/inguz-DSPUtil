@@ -18,7 +18,7 @@ namespace DSPUtil
 
     /// <summary> Write the samples processed in a wave file </summary>
     [Serializable]
-    public sealed class WaveWriter : SoundObj
+    public sealed partial class WaveWriter : SoundObj
     {
         // From WinBase.h
         internal const int FILE_TYPE_DISK = 0x0001;
@@ -30,11 +30,12 @@ namespace DSPUtil
         internal const int STD_OUTPUT_HANDLE = -11;
         internal const int STD_ERROR_HANDLE = -12;
 
-        [System.Runtime.InteropServices.DllImport("Kernel32.dll")]
-        internal static extern int GetFileType(IntPtr i_Handle);
+        [System.Runtime.InteropServices.LibraryImport("Kernel32.dll")]
+  
+        internal static partial int GetFileType(IntPtr i_Handle);
 
-        [System.Runtime.InteropServices.DllImport("Kernel32.dll", SetLastError = true)]
-        internal static extern IntPtr GetStdHandle(int i_Handle);  // param is NOT a handle, but it returns one!
+        [System.Runtime.InteropServices.LibraryImport("Kernel32.dll", SetLastError = true)]
+        internal static partial IntPtr GetStdHandle(int i_Handle);  // param is NOT a handle, but it returns one!
 
         // Members
 
@@ -217,7 +218,9 @@ namespace DSPUtil
             ushort nChannels = NumChannels;
             if (nChannels == 0)
             {
+                
                 throw new NotSupportedException("Number of channels cannot be zero");
+               
             }
             ushort bPerSample = BitsPerSample;
             if (bPerSample == 0)
@@ -428,6 +431,13 @@ namespace DSPUtil
                         {
                             System.ComponentModel.Win32Exception e = new System.ComponentModel.Win32Exception(Err);
                             Trace.WriteLine("Write fault " + Err + ": " + e.Message);
+                            if (Err == 232)
+                            {//This seems to occur when we click skip and the stream is terminated, not always handled correctly
+                                Trace.WriteLine("Terminating Application, this should only happen after a skip");
+                                Environment.Exit(-1);
+                            }
+
+
                             err = true;// yield break;
                         }
                     }
@@ -607,6 +617,14 @@ namespace DSPUtil
                 return pk;
             }
         }
+
+        public Stream GetStream
+        {
+            get {
+                return _w.BaseStream;
+                    }
+        }
+
 
         /// <summary> Close the wave file </summary>
         public void Close()

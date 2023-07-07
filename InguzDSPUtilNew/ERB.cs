@@ -80,7 +80,7 @@ namespace DSPUtil
 
                 // Then we're done with the buffer for this channel
                 buff = null;
-                GC.Collect();
+                //GC.Collect();
 
                 // FFT in place
                 Fourier.FFT(cdata.Length, cdata);

@@ -50,7 +50,7 @@ namespace DSPUtil
 
     public class WaveFormatEx
     {
-        public static WaveFormatEx PCM = new WaveFormatEx("00000001-0000-0010-8000-00aa00389b71");
+        public static WaveFormatEx PCM = new("00000001-0000-0010-8000-00aa00389b71");
         public static WaveFormatEx IEEE_FLOAT = new WaveFormatEx("00000003-0000-0010-8000-00aa00389b71");
         public static WaveFormatEx AMBISONIC_B_FORMAT_PCM = new WaveFormatEx("00000001-0721-11d3-8644-C8C1CA000000");
         public static WaveFormatEx AMBISONIC_B_FORMAT_IEEE_FLOAT = new WaveFormatEx("00000003-0721-11d3-8644-C8C1CA000000");
@@ -118,6 +118,7 @@ namespace DSPUtil
         private ISample _first;
         private bool _moreThanFirst;
         private ISample _current;
+        private long _dataoffset; //Want to calculate where the data stream actually starts within a wav file
 
         // Buffers for ISampleBuffer
         /*
@@ -141,10 +142,12 @@ namespace DSPUtil
             OpenFile(fileName);
             ReadWaveHeader(WaveFormat.ANY, true);
             ReadSPDIF();
+
         }
         public WaveReader(string fileName, TimeSpan startTime)
         {
             OpenFile(fileName);
+            
             ReadWaveHeader(WaveFormat.ANY, true);
             ReadSPDIF();
             SkipToStart(startTime);
@@ -199,7 +202,7 @@ namespace DSPUtil
         private void OpenFile(string fileName)
         {
             _filename = fileName;
-            if (fileName == null || fileName=="-")
+            if (fileName == null || fileName == "-")
             {
                 // use stdin
                 //fs = null;
@@ -227,6 +230,7 @@ namespace DSPUtil
         {
             _ok = false;
             _pos = 0;
+            _dataoffset = 0;
 
             //          Trace.WriteLine("ReadWaveHeader {0}", format);
             if (!expectHeader)
@@ -274,7 +278,10 @@ namespace DSPUtil
             // Read 'RIFF' (WAV) or 'FORM' (AIFF) tag ///////////////////////////////////////////////
 
             char[] hdr = _rdr.ReadChars(4);
+            _dataoffset = _dataoffset + 4;
             _riff = new string(hdr);
+
+
             if (_riff != "RIFF" && _riff != "FORM")
             {
                 if (hdr.Length == 0)
@@ -291,11 +298,13 @@ namespace DSPUtil
 
             // File length
             int fileLen = _rdr.ReadInt32();
+            _dataoffset = sizeof(int) + _dataoffset;
             _length = (uint)fileLen;
 
             // Read Wave //////////////////////////////////////////////
 
             _wave = new string(_rdr.ReadChars(4));
+            _dataoffset = _dataoffset + 4;
             if (_wave != "WAVE" && _wave != "AIFF")
                 throw (new Exception(String.Format("File is not WAV: no 'WAVE' tag found, instead {0}", _wave)));
             if (_wave == "AIFF")
@@ -307,28 +316,33 @@ namespace DSPUtil
             // Read Format ////////////////////////////////////////////
 
             _format = new string(_rdr.ReadChars(4));
-
+            _dataoffset = _dataoffset + 4;
             // WMP11-ripped WAV files begin with 'LIST' metadata - even before the format tag.
             // AIFF files could have this too (haven't seen it yet).
             // Skip any chunks up to the format header.
             while (_format.Length > 0 && _format != "fmt " && _format != "COMM")
             {
                 int chunkSize = _rdr.ReadInt32();
+                _dataoffset = _dataoffset + sizeof(int);
                 if (BigEndian)
                     chunkSize = System.Net.IPAddress.NetworkToHostOrder(chunkSize);
                 Trace.WriteLine("Skipping {0} ({1} bytes)", _format, chunkSize);
                 _rdr.ReadBytes(chunkSize);
+                _dataoffset = _dataoffset + chunkSize;
                 _format = new string(_rdr.ReadChars(4));
+                _dataoffset = _dataoffset + 4;
             }
 
             if (_format == "fmt ")
             {
                 // WAV file-format chunk
                 _size = _rdr.ReadUInt32();
+                _dataoffset = _dataoffset + sizeof(uint);
                 if (_size < 16)
                     throw (new Exception("File could not be read: don't know how to read 'fmt' size " + _size));
 
                 _audioFormat = (WaveFormat)_rdr.ReadUInt16();
+                _dataoffset = _dataoffset + sizeof(ushort);
 
                 if (_audioFormat == WaveFormat.PCM ||
                     _audioFormat == WaveFormat.ADPCM ||
@@ -342,6 +356,7 @@ namespace DSPUtil
                     _byteRate = _rdr.ReadUInt32();          // WAVEFORMATEX nAvgBytesPerSec     4
                     _blockAlign = _rdr.ReadUInt16();        // WAVEFORMATEX nBlockAlign         2 (channels * bitspersample / 8)
                     _bitsPerSample = _rdr.ReadUInt16();     // WAVEFORMATEX wBitsPerSample      2 (the *container* size)
+                   _dataoffset = _dataoffset + sizeof(ushort) + sizeof(uint) + sizeof(uint) + sizeof(ushort);
                     if (_size > 16)
                     {
                         uint skip = 16;
@@ -350,8 +365,10 @@ namespace DSPUtil
                             UInt16 kip = _rdr.ReadUInt16();
                             UInt16 union = _rdr.ReadUInt16();       // the Samples union, wdc
                             _channelMask = _rdr.ReadUInt32();       // channel mask
+                            _dataoffset = _dataoffset + sizeof(ushort) + sizeof(uint) + sizeof(ushort);
                             // then the GUID, 16 bytes
                             _formatEx = new WaveFormatEx(_rdr.ReadBytes(16));
+                            _dataoffset = _dataoffset + 16;
                             skip = 40;
                             if (_formatEx.Equals(WaveFormatEx.PCM) || _formatEx.Equals(WaveFormatEx.AMBISONIC_B_FORMAT_PCM))
                             {
@@ -363,7 +380,8 @@ namespace DSPUtil
                             }
                         }
                         // Read and discard the rest of the 'fmt' structure
-                        _rdr.ReadBytes((int)(_size - skip));
+                        var discard = _rdr.ReadBytes((int)(_size - skip));
+                        _dataoffset = _dataoffset + sizeof(int);
                     }
                 }
                 else
@@ -382,10 +400,11 @@ namespace DSPUtil
                 NumChannels = (ushort)System.Net.IPAddress.NetworkToHostOrder(_rdr.ReadInt16());
                 uint numFrames = (uint)System.Net.IPAddress.NetworkToHostOrder(_rdr.ReadInt32()); // number of sample frames
                 _bitsPerSample = (ushort)System.Net.IPAddress.NetworkToHostOrder(_rdr.ReadInt16());
-
+                _dataoffset = _dataoffset + sizeof(ushort) + sizeof(uint) + sizeof(ushort);
                 // SampleRate is 10-byte IEEE_extended format.  Don't bother converting that
                 // properly, just check for good known values (yuk!)
                 byte[] ext = _rdr.ReadBytes(10);
+                _dataoffset = _dataoffset + 10;
                 if (ext[0] == 64 && ext[1] == 14 && ext[2] == 172 && ext[3] == 68)
                 {
                     SampleRate = 44100;
@@ -409,7 +428,8 @@ namespace DSPUtil
                 if (_size > 18)
                 {
                     // Read and discard the rest of the 'fmt' structure
-                    _rdr.ReadBytes((int)(_size - 18));
+                    var discard  = _rdr.ReadBytes((int)(_size - 18));
+                    _dataoffset = _dataoffset + sizeof(int);
                 }
             }
             else
@@ -421,16 +441,20 @@ namespace DSPUtil
             // Read Data ///////////////////////////////////////////////
 
             _data = new string(_rdr.ReadChars(4));
+            _dataoffset = _dataoffset + 4;
             while (_data.Length > 0 && _data != "data" && _data != "SSND")
             {
                 // Not a data chunk, ignore
                 int miscSize = _rdr.ReadInt32();
+                _dataoffset = _dataoffset + sizeof(int);
                 if (BigEndian)
                     miscSize = System.Net.IPAddress.NetworkToHostOrder(miscSize);
                 _rdr.ReadBytes(miscSize);
+                _dataoffset = _dataoffset + miscSize;
                 _data = new string(_rdr.ReadChars(4));
+                _dataoffset = _dataoffset + 4;
             }
-
+            
             // Read the data size
             if (BigEndian)
             {
@@ -440,7 +464,7 @@ namespace DSPUtil
             {
                 _dataSize = _rdr.ReadUInt32();
             }
-
+            //_dataoffset = _dataoffset + 4;
             // See if we can read this
             if (NumChannels > 0)
             {
@@ -483,6 +507,7 @@ namespace DSPUtil
             }
             if (_ok)
             {
+                
                 _max = (uint)((_dataSize / (_bitsPerSample / 8)) / NumChannels);
                 if (_dataSize==4294967292)
                 {
@@ -512,6 +537,7 @@ namespace DSPUtil
                 // at the beginning of the stream.
                 int nFirst = (_nc * _bitsPerSample / 8);
                 byte[] firstBytes = _rdr.ReadBytes(nFirst);
+                //_dataoffset = _dataoffset + nFirst;
                 MemoryStream ms = new MemoryStream(firstBytes);
                 BinaryReader mr = new BinaryReader(ms);
 
@@ -702,6 +728,8 @@ namespace DSPUtil
                 Trace.WriteLine("End of input ({0}) at {1}.", streamName, _pos);
                 more = false;
                 _current = null;
+                //adding in brutal exit to see if this helps with skipping - it does not.
+                
             }
             catch (IOException e)
             {
@@ -956,6 +984,16 @@ namespace DSPUtil
         {
             get { return _channelMask; }
         }
+        public BinaryReader InputBinaryReader
+        {
+            get { return _rdr; }
+        }
+
+        public long DataOffset
+        {
+            get { return _dataoffset; }
+        }
+
         #endregion
     }
 }

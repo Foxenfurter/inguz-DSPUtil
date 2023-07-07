@@ -65,6 +65,11 @@ namespace DSPUtil
             set { _bitsPerSample = value; }
         }
 
+        public uint SampleRate
+        {
+            set { _sr = value; }
+        }
+
 
         /// <summary>
         /// Set the dither type
@@ -116,9 +121,11 @@ namespace DSPUtil
             if (_input != null)
             {
                 ok = true;
-                if (_sr != 48000 && _sr != 44100 && _sr != 32000)
+                //if (_sr != 48000 && _sr != 44100 && _sr != 32000)
+                //give it a bit of leeway
+                if (_sr < 44000 )
                 {
-                    throw new Exception("Invalid sample rate for SPDIF");
+                    throw new Exception("Invalid sample rate for SPDIF: " + _sr );
                 }
             }
             return ok;
@@ -165,7 +172,8 @@ namespace DSPUtil
 
             _writer = new WaveWriter(_in.BaseStream);
             _writer.Input = _input;
-            _writer.BitsPerSample = 16;
+            _writer.BitsPerSample = _bitsPerSample;
+            _writer.SampleRate = _sr;
 
             _process.StartInfo = processInfo;
             try

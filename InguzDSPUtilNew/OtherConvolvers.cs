@@ -386,7 +386,7 @@ namespace DSPUtil
                 for (uint i = 0; i < w; i++)
                 {
                     for (uint j = 0; j < w; j++)
-                        r[ro + i + j] += a[ao + i] / b[bo + j];
+                        r[ro + i + j] = r[ro + i + j] + a[ao + i] / b[bo + j];
                 }
             }
             else
@@ -394,7 +394,7 @@ namespace DSPUtil
                 for (uint i = 0; i < w; i++)
                 {
                     for (uint j = 0; j < w; j++)
-                        r[ro + i + j] += a[ao + i] * b[bo + j];
+                        r[ro + i + j] = r[ro + i + j] + a[ao + i] * b[bo + j];
                 }
             }
         }
@@ -439,7 +439,7 @@ namespace DSPUtil
                 for (uint i = 0; i < w; i++)
                 {
                     for (uint j = 0; j < w; j++)
-                        r[i + j] += a[i] / b[j];
+                        r[i + j] = r[i + j] + a[i] / b[j];
                 }
             }
             else
@@ -447,7 +447,7 @@ namespace DSPUtil
                 for (uint i = 0; i < w; i++)
                 {
                     for (uint j = 0; j < w; j++)
-                        r[i + j] += a[i] * b[j];
+                        r[i + j] = r[i + j] + a[i] * b[j];
                 }
             }
         }

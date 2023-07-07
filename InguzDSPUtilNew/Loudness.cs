@@ -58,8 +58,14 @@ namespace DSPUtil
             for (int j = 0; j < f.Length; j++)
             {
                 // Deriving sound pressure level from loudness level (iso226 sect 4.1)
-                double Af = 4.47E-3 * Math.Pow(10, (0.025 * Ln) - 1.15) + Math.Pow(0.4 * Math.Pow(10, (((Tf[j] + Lu[j]) / 10) - 9)), af[j]);
-                double Lp = ((10 / af[j]) * Math.Log10(Af)) - Lu[j] + 94;
+               // double Af = 4.47E-3 * Math.Pow(10, (0.025 * Ln) - 1.15) + Math.Pow(0.4 * Math.Pow(10, (((Tf[j] + Lu[j]) / 10) - 9)), af[j]);
+               // double Lp = ((10 / af[j]) * Math.Log10(Af)) - Lu[j] + 94;
+                // see function here       https://uk.mathworks.com/matlabcentral/fileexchange/7028-iso-226-equal-loudness-level-contour-signal
+                double Af = 4.47e-3 * (Math.Pow(10.0, 0.025 * Ln) - 1.15) + Math.Pow(0.4 * Math.Pow(10.0, ((Tf[j] + Lu[j]) / 10.0) - 9.0), af[j]);
+                double Lp = (10.0 / af[j]) * Math.Log10(Af) - Lu[j] + 94.0;
+
+
+
 
                 // Return user data
                 FreqGain fg = new FreqGain(f[j], Lp);
@@ -83,6 +89,7 @@ namespace DSPUtil
                 FreqGain fg = spl1[j];
                 fg.Gain = scale * ( spl0[j].Gain - fg.Gain );
                 spl.Add(fg);
+               // Console.WriteLine("Frequencey = " + fg.Freq + " Gain = " + fg.Gain);
             }
             return spl;
         }
@@ -133,7 +140,7 @@ namespace DSPUtil
             double wvDirac = WeightedVolume2(buff, dbSPL, dbSPLBase);
 
             buff = null;
-            GC.Collect();
+            //GC.Collect();
 
             return wvImpulse / wvDirac;
         }

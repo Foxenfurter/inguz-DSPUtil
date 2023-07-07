@@ -11,25 +11,30 @@ namespace DSPUtil
     [Serializable]
     public struct FreqGain
     {
-        private double _freq;
         /// <summary>
         /// Frequency, Hz
         /// </summary>
-        public double Freq
-        {
-            get { return _freq; }
-            set { _freq = value; }
-        }
+    
+        public double Freq { get; set; }
 
-        private double _gain;
+        /*private double _freq;
+
+                get { return _freq; }
+                set { _freq = value; }
+            }
+                */
+       // private double _gain;
+      //  private double _freq;
+
         /// <summary>
         /// Gain, dB
         /// </summary>
-        public double Gain
+        /*public double Gain
         {
             get { return _gain; }
             set { _gain = value; }
-        }
+        }*/
+        public double Gain { get; set; }
 
         /// <summary>
         /// Frequency/Gain pair
@@ -38,8 +43,8 @@ namespace DSPUtil
         /// <param name="gain">Gain, dB</param>
         public FreqGain(double freq, double gain)
         {
-            _freq = freq;
-            _gain = gain;
+            Freq = freq;
+            Gain = gain;
         }
     }
 
@@ -108,7 +113,7 @@ namespace DSPUtil
 
                 // Then we're done with the buffer for this channel
                 buff = null;
-                GC.Collect();
+                //GC.Collect();
 
                 // FFT in place
                 Fourier.FFT(cdata.Length, cdata);

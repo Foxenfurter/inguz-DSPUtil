@@ -59,7 +59,7 @@ namespace DSPUtil
 
         private static bool TraceFile()
         {
-            lock (_lock)
+            //lock (_lock)
             {
                 if (!_useConsole && !_init)
                 {
@@ -97,12 +97,12 @@ namespace DSPUtil
             }
             else if (TraceFile())
             {
-                lock (_lock)
+                //lock (_lock)
                 {
                     try
                     {
                         string msg = String.Format(format, args);
-                        File.AppendAllText(_tracefile, DateTime.Now.ToString("yyyyMMddHHmmss: ") + _prefix + msg);
+                        File.AppendAllText(_tracefile, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.ffffff") + " " + _prefix + msg);
                     }
                     catch (Exception)
                     {

@@ -169,10 +169,7 @@ namespace DSPUtil
 
         public override ISoundObj Input
         {
-            get
-            {
-                return base.Input;
-            }
+            get => base.Input;
             set
             {
                 if (value != null && _impulse != null)
@@ -417,7 +414,7 @@ namespace DSPUtil
                 {
                     for (ushort c = 0; c < nChannels; c++)
                     {
-                        output[c][j].Re += prevTailEnum.Current[c];
+                        output[c][j].Re = output[c][j].Re + prevTailEnum.Current[c];
                     }
                 }
                 else
