@@ -9,7 +9,11 @@ namespace DSPUtil
     // Package constants
     public class DSPUtil
     {
-        public const int BUFSIZE = 8192; // 512;
+        // public const int BUFSIZE = 512; huge dropouts decoding high samplerate flac
+         public const int BUFSIZE = 8192; 
+        // - below doesn't really improve dropouts
+        // public const int BUFSIZE = 16384;
+        // public const int BUFSIZE = 32768;
         public static Version VERSION { get { return new Version("0.9.34"); } }
         public static DateTime EXPIRY { get { return DateTime.MaxValue; } }  // expire just about never
         public static String GetVersionInfo()
