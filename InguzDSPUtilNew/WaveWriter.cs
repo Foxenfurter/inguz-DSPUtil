@@ -234,6 +234,7 @@ namespace DSPUtil
             }
 
             ushort blockSize = (ushort)((nChannels * bPerSample) / 8);
+            Trace.WriteLine("Writing Header Iterations: " + Iterations + " Input Iterations " + _input.Iterations);
             uint dataSize = (uint)(Iterations * blockSize);
             uint fmtSize = (uint)(_audioFormat == WaveFormat.EXTENSIBLE ? 40 : 16);
 
@@ -308,10 +309,10 @@ namespace DSPUtil
                 {
                     throw new Exception("WaveWriter: format not specified");
                 }
-
-                MakeDither();
+                //Trace.WriteLine("WaveWriter: Creating Wave Header");
+                MakeDither(); 
                 WriteWaveHeader();
-
+                //Trace.WriteLine("WaveWriter: Processing output samples");
                 foreach (ISample sample in _buff())
                 {
                     ISample s = _next(sample, out err);
@@ -331,6 +332,7 @@ namespace DSPUtil
                 return _input;
             }
             // We've been asked to normalize
+            
             SoundBuffer b = new SoundBuffer(_input);
             b.ReadAll();
             _gain = b.Normalize(_normalization, false);
@@ -467,17 +469,23 @@ namespace DSPUtil
         }
 
         /// <summary> Number of iterations expected to do the signal processing </summary>
-        public override int Iterations
+        public new int Iterations
         {
             get
             {
-                if (_iterations == 0 && base._input!=null)
+                if (_iterations == 0 && base._input != null)
                 {
                     return (base._input.Iterations);
                 }
                 return _iterations;
             }
+            set
+            {
+                _iterations = value;
+               // Trace.WriteLine("Write Iterations set to : " + _iterations);
+            }
         }
+
 
         /// <summary> Gets the number of bits per sample of the signal </summary>
         public ushort BitsPerSample

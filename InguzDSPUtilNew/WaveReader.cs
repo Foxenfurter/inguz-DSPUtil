@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 using System.IO;
@@ -119,7 +119,8 @@ namespace DSPUtil
         private bool _moreThanFirst;
         private ISample _current;
         private long _dataoffset; //Want to calculate where the data stream actually starts within a wav file
-
+        private bool _endOfStream = false; // Added to WaveReader class
+        public bool IsEndOfStream => _endOfStream;
         // Buffers for ISampleBuffer
         /*
         private ISample[] _buff;
@@ -159,6 +160,31 @@ namespace DSPUtil
             ReadWaveHeader(format, true);
             ReadSPDIF();
         }
+        public WaveReader(string fileName, WaveFormat format, ushort bitsPerSample, ushort numChannels, uint sampleRate)
+        {
+            // To read raw
+            OpenFile(fileName);
+            _audioFormat = format;
+            ReadWaveHeader(format, false, numChannels, bitsPerSample, sampleRate);
+            
+             _max = uint.MaxValue; // Indicate unknown length for streaming.
+           
+            NumChannels = numChannels;
+            _bitsPerSample = bitsPerSample;
+            ReadSPDIF();
+        }
+        public WaveReader(string fileName, WaveFormat format, ushort bitsPerSample, ushort numChannels,  uint sampleRate, TimeSpan startTime)
+        {
+            // To read raw
+            OpenFile(fileName);
+            _audioFormat = format;
+            ReadWaveHeader(format, false, numChannels, bitsPerSample, sampleRate);
+            NumChannels = numChannels;
+            _bitsPerSample = bitsPerSample;
+            ReadSPDIF();
+            SkipToStart(startTime);
+        }
+
         public WaveReader(string fileName, WaveFormat format, ushort bitsPerSample, ushort numChannels)
         {
             // To read raw
@@ -169,18 +195,39 @@ namespace DSPUtil
             _bitsPerSample = bitsPerSample;
             ReadSPDIF();
         }
-        public WaveReader(string fileName, WaveFormat format, ushort bitsPerSample, ushort numChannels, TimeSpan startTime)
+
+        public WaveReader(Stream input, WaveFormat format, ushort bitsPerSample, ushort numChannels, uint sampleRate)
+        {
+            _rdr = new BinaryReader(input);
+
+
+           // _blockAlign = (ushort)((NumChannels * _bitsPerSample) >> 3);
+          // _byteRate = (uint)(_blockAlign * SampleRate);
+            _ok = true;
+
+            ReadWaveHeader(format, false, numChannels, bitsPerSample, sampleRate);
+            NumChannels = numChannels;
+            _bitsPerSample = bitsPerSample;
+            SampleRate = sampleRate; //Set the sample rate.
+            _blockAlign = (ushort)((NumChannels * _bitsPerSample) / 8);
+            _byteRate = (uint)(SampleRate * NumChannels * (_bitsPerSample / 8));
+            _max = uint.MaxValue; // Indicate unknown length for streaming.
+            
+            ReadSPDIF();
+        }
+        public WaveReader(string fileName, WaveFormat format, ushort bitsPerSample, ushort numChannels,  TimeSpan startTime = default)
         {
             // To read raw
             OpenFile(fileName);
             _audioFormat = format;
             ReadWaveHeader(format, false);
+
             NumChannels = numChannels;
             _bitsPerSample = bitsPerSample;
             ReadSPDIF();
             SkipToStart(startTime);
         }
-
+       
         public WaveReader(Stream input)
         {
             //fs = null;
@@ -198,6 +245,8 @@ namespace DSPUtil
             ReadWaveHeader(format, true);
             ReadSPDIF();
         }
+
+      
 
         private void OpenFile(string fileName)
         {
@@ -226,7 +275,7 @@ namespace DSPUtil
         }
 
 
-        private void ReadWaveHeader(WaveFormat format, bool expectHeader)
+        private void ReadWaveHeader(WaveFormat format, bool expectHeader, ushort myChannels = 2, ushort mybitsPerSample = 16, uint mySampleRate = 44100)
         {
             _ok = false;
             _pos = 0;
@@ -247,13 +296,13 @@ namespace DSPUtil
                 _audioFormat = format;
 
                 // Assume defaults, they can be overridden later
-                NumChannels = 2;
-                SampleRate = 44100;
+                NumChannels = myChannels;
+                SampleRate = mySampleRate;
 
                 if (format == WaveFormat.PCM || format == WaveFormat.EXTENSIBLE)
                 {
                     // Raw PCM, assume 16 bit 44k1 stereo PCM
-                    _bitsPerSample = 16;
+                    _bitsPerSample = mybitsPerSample;
                     _ok = true;
                 }
                 else if (format == WaveFormat.IEEE_FLOAT)
@@ -449,6 +498,7 @@ namespace DSPUtil
                 _dataoffset = _dataoffset + sizeof(int);
                 if (BigEndian)
                     miscSize = System.Net.IPAddress.NetworkToHostOrder(miscSize);
+                Trace.WriteLine("Skipping {0} ({1} bytes)", _format, miscSize);
                 _rdr.ReadBytes(miscSize);
                 _dataoffset = _dataoffset + miscSize;
                 _data = new string(_rdr.ReadChars(4));
@@ -613,62 +663,6 @@ namespace DSPUtil
             }
         }
 
-        private double NextDouble(BinaryReader rdr)
-        {
-            double val = 0;
-            if (_bigEndian)
-            {
-                // For now only handle 16-bit big-endian data   
-                if (_bitsPerSample == 16)
-                {
-                    short beword = rdr.ReadInt16();
-                    beword = System.Net.IPAddress.NetworkToHostOrder(beword);
-                    val = ((double)beword * _scale16);
-                }
-            }
-            else
-            {
-                switch (_bitsPerSample)
-                {
-                    case 16:
-                        val = ((double)rdr.ReadInt16() * _scale16);
-                        break;
-                    case 8:
-                        val = ((double)rdr.ReadByte() - 128) * _scale8;        // 8-bit PCM uses unsigned bytes
-                        break;
-                    case 24:
-                        // Little-endian, signed 24-bit
-                        int a = (int)rdr.ReadUInt16();
-                        int b = (int)rdr.ReadSByte();
-                        int c = (b << 16) + a;
-                        val = ((double)c) * _scale24;
-                        break;
-                    case 32:
-                        if (_audioFormat == WaveFormat.IEEE_FLOAT)
-                        {
-                            val = (double)rdr.ReadSingle();
-                        }
-                        else
-                        {
-                            val = ((double)rdr.ReadInt32()) * _scale32;
-                        }
-                        break;
-                    case 64:
-                        if ((_audioFormat == WaveFormat.IEEE_FLOAT) || (_audioFormat == WaveFormat.INTERNAL_DOUBLE))
-                        {
-                            val = rdr.ReadDouble();
-                        }
-                        else
-                        {
-                            // throw new Exception("64-bit PCM not handled");
-                            val = 0;
-                        }
-                        break;
-                }
-            }
-            return val;
-        }
-
         private ISample First(out bool more)
         {
             // Looking for spdif, we cached the first sample (and whether there were more samples after that)
@@ -682,8 +676,157 @@ namespace DSPUtil
             more = (_current != null);
             return _current;
         }
+        private double NextDouble(BinaryReader rdr)
+        {
+            if (_endOfStream) return 0; // Exit early if already at EOF
+
+            double val = 0;
+            try
+            {
+                if (_bigEndian)
+                {
+                    switch (_bitsPerSample)
+                    {
+                        case 16:
+                            short beword = rdr.ReadInt16();
+                            beword = System.Net.IPAddress.NetworkToHostOrder(beword);
+                            val = ((double)beword * _scale16);
+                            break;
+                        case 24:
+
+                            // Big-endian, signed 24-bit
+                            byte[] bytes24 = rdr.ReadBytes(3);
+                            if (bytes24.Length != 3)
+                            {
+                                return 0; // Or throw an exception, handle end of stream
+                            }
+                            int c = (bytes24[0] << 16) | (bytes24[1] << 8) | bytes24[2];
+                            if ((c & 0x800000) != 0)
+                            {
+                                c |= unchecked((int)0xFF000000); // Sign extend
+                            }
+                            val = ((double)c) * _scale24;
+                            break;
+                            // Add cases for other bit depths if needed
+                    }
+                }
+                else
+                {
+                    switch (_bitsPerSample)
+                    {
+                        case 16:
+                            val = ((double)rdr.ReadInt16() * _scale16);
+                            break;
+                        case 8:
+                            val = ((double)rdr.ReadByte() - 128) * _scale8;        // 8-bit PCM uses unsigned bytes
+                            break;
+                        case 24:
+                            // Little-endian, signed 24-bit
+                            int a = (int)rdr.ReadUInt16();
+                            int b = (int)rdr.ReadSByte();
+                            int c = (b << 16) + a;
+                            val = ((double)c) * _scale24;
+                            break;
+                        case 32:
+                            if (_audioFormat == WaveFormat.IEEE_FLOAT)
+                            {
+                                val = (double)rdr.ReadSingle();
+                            }
+                            else
+                            {
+                                val = ((double)rdr.ReadInt32()) * _scale32;
+                            }
+                            break;
+                        case 64:
+                            if ((_audioFormat == WaveFormat.IEEE_FLOAT) || (_audioFormat == WaveFormat.INTERNAL_DOUBLE))
+                            {
+                                val = rdr.ReadDouble();
+                            }
+                            else
+                            {
+                                // throw new Exception("64-bit PCM not handled");
+                                val = 0;
+                            }
+                            break;
+                    }
+                }
+            }
+
+            catch (EndOfStreamException)
+            {
+                //Trace.WriteLine("Input End of Stream");
+                _endOfStream = true; // Mark EOF on read failure
+                return 0;
+            }
+            return val;
+        }
+
+
 
         private ISample Next(BinaryReader rdr, out bool more)
+        {
+            more = false;
+            _current = null;
+
+            // Exit immediately if we've already hit EOF
+            if (_endOfStream || _pos >= _max)
+            {
+
+                more = false;
+                _max = _pos;
+                //Trace.WriteLine("End of Stream: " + streamName + " Iterations: " + _pos);
+                return null;
+            }
+
+            try
+            {
+                if (_nc == 2)
+                {
+                    _pos++;
+                    double a = NextDouble(rdr);
+                    double b = NextDouble(rdr);
+                    if (_endOfStream) return null; // Abort if either read failed
+                    more = true;
+                    _current = new Sample2(a, b);
+                }
+                else
+                {
+                    _pos++;
+                    ISample sample = new Sample(_nc);
+                    for (int n = 0; n < _nc; n++)
+                    {
+                        double value = NextDouble(rdr);
+                        if (_endOfStream) return null; // Abort on failure
+                        sample[n] = value;
+                    }
+                    more = true;
+                    _current = sample;
+                }
+            }
+            catch (EndOfStreamException)
+            {
+                more = false;
+                _current = null;
+                _endOfStream = true;
+                _max = _pos;
+                Trace.WriteLine("End of input ({0}) at {1}.", streamName, _pos);
+            }
+            catch (IOException e)
+            {
+                more = false;
+                _current = null;
+                _endOfStream = true;
+                _max = _pos;
+                Trace.WriteLine("IO error ({0}) at {1}: {2}", streamName, _pos, e.Message);
+            }
+
+            return _current;
+        }
+
+
+
+
+        private ISample NextOld(BinaryReader rdr, out bool more)
         {
             try
             {
@@ -752,9 +895,8 @@ namespace DSPUtil
             }
         }
 
-        /// <summary>
-        /// Get an iterator for samples
-        /// </summary>
+        /// <summary> Get an iterator for samples </summary>
+  
         public override IEnumerator<ISample> Samples
         {
             get
@@ -802,7 +944,7 @@ namespace DSPUtil
                 yield break;
             }
         }
-
+      
         #region ISampleBuffer implementation
         /*
         public void Skip(int n, out int nn, out bool moreSamples)
@@ -903,6 +1045,10 @@ namespace DSPUtil
         {
             get { return _isSPDIF; }
         }
+
+        public long Frames
+        { get { return _pos; } }
+
 
         // Set big-endian-ness (only useful for raw, since we always read the header as little-endian)
         public bool BigEndian
