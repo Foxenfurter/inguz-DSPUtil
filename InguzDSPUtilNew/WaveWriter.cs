@@ -234,7 +234,7 @@ namespace DSPUtil
             }
 
             ushort blockSize = (ushort)((nChannels * bPerSample) / 8);
-            Trace.WriteLine("Writing Header Iterations: " + Iterations + " Input Iterations " + _input.Iterations);
+            //Trace.WriteLine("Writing Header Iterations: " + Iterations + " Input Iterations " + _input.Iterations);
             uint dataSize = (uint)(Iterations * blockSize);
             uint fmtSize = (uint)(_audioFormat == WaveFormat.EXTENSIBLE ? 40 : 16);
 

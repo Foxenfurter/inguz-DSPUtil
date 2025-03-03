@@ -375,7 +375,7 @@ namespace DSPUtil
                 _dataoffset = _dataoffset + sizeof(int);
                 if (BigEndian)
                     chunkSize = System.Net.IPAddress.NetworkToHostOrder(chunkSize);
-                Trace.WriteLine("Skipping {0} ({1} bytes)", _format, chunkSize);
+               // Trace.WriteLine("Skipping {0} ({1} bytes)", _format, chunkSize);
                 _rdr.ReadBytes(chunkSize);
                 _dataoffset = _dataoffset + chunkSize;
                 _format = new string(_rdr.ReadChars(4));
